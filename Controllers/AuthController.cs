@@ -15,7 +15,7 @@ namespace SupermarketAPI.Controllers
             _authService = authService;
         }
 
-        [HttpPost("login")]
+        [HttpPost()]
         public IActionResult Login([FromBody] LoginRequestDto request)
         {
             var result = _authService.Login(request.Username, request.Password);

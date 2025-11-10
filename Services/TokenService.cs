@@ -1,7 +1,7 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.JsonWebTokens;
 using SupermarketAPI.Models;
 
 namespace SupermarketAPI.Services
@@ -9,15 +9,11 @@ namespace SupermarketAPI.Services
     public class TokenService
     {
         private readonly IConfiguration _configuration;
-
-        public TokenService (IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
+        public TokenService(IConfiguration configuration) => _configuration = configuration;
 
         public string GenerateToken(User user)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
@@ -28,15 +24,17 @@ namespace SupermarketAPI.Services
                 new Claim(JwtRegisteredClaimNames.Sub, user.Username)
             };
 
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: creds);
+            var descriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"],
+                Expires = DateTime.UtcNow.AddHours(24),
+                SigningCredentials = creds
+            };
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
-
+            var handler = new JsonWebTokenHandler();
+            return handler.CreateToken(descriptor);
         }
     }
 }
